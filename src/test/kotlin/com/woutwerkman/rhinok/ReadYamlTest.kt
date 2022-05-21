@@ -12,7 +12,7 @@ class ReadYamlTest {
         RhinoKYamlReader().readRhinoContext(yaml.reader())
 
     private fun assertIllegalYaml(@Language("yaml") yaml: String) {
-        assertThrows<RhinoKCodeGenerator.IllegalYamlFile> {
+        assertThrows<RhinoKYamlReader.IllegalYamlFile> {
             RhinoKYamlReader().readRhinoContext(yaml.reader())
         }
     }
@@ -60,14 +60,17 @@ class ReadYamlTest {
 
     @Test
     fun `if slot is used multiple times, it is still only created once`() {
-        val slot = Slot("Slot", listOf("One", "Two"))
+        val slotVariableType = SlotVariableType.Custom(Slot("Slot", listOf("One", "Two")))
         assertEquals(
             RhinoContext(
                 listOf(
-                    Intent("Foo", listOf(SlotVariable("bla", slot, true), SlotVariable("bloo", slot, true))),
-                    Intent("Bar", listOf(SlotVariable("bla", slot, true))),
+                    Intent(
+                        "Foo",
+                        listOf(SlotVariable("bla", slotVariableType, true), SlotVariable("bloo", slotVariableType, true))
+                    ),
+                    Intent("Bar", listOf(SlotVariable("bla", slotVariableType, true))),
                 ),
-                listOf(slot),
+                listOf(slotVariableType.slot),
             ),
             readContext(
                 """
@@ -140,6 +143,168 @@ class ReadYamlTest {
                           - Two
                 """.trimIndent(),
             ).slots.single().elements.minOrNull()
+        )
+    }
+
+    @Test
+    fun `if variable is inside of optional parentheses, it should be optional`() {
+        assertFalse(
+            "True",
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do (${'$'}Slot:bla)
+                      slots:
+                        Slot:
+                          - true
+                          - Two
+                """.trimIndent(),
+            ).intents.single().variables.single().isRequired
+        )
+    }
+
+    @Test
+    fun `if variable is inside of optional parentheses, it should be optional, even is it's not optional in another expression`() {
+        assertFalse(
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do (${'$'}Slot:bla)
+                          - do ${'$'}Slot:bla
+                      slots:
+                        Slot:
+                          - true
+                          - Two
+                """.trimIndent(),
+            ).intents.single().variables.single().isRequired
+        )
+    }
+
+    @Test
+    fun `if variable is inside of a choice, it should be optional, even is it's not optional in another expression`() {
+        assertFalse(
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do [${'$'}Slot:bla, nothing]
+                          - do ${'$'}Slot:bla
+                      slots:
+                        Slot:
+                          - true
+                          - Two
+                """.trimIndent(),
+            ).intents.single().variables.single().isRequired
+        )
+    }
+
+    @Test
+    fun `if variable is of type picovoice type Alphabetic, its a char`() {
+        assertEquals(
+            SlotVariable("bla", SlotVariableType.Char, true),
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do ${'$'}pv.Alphabetic:bla
+                """.trimIndent(),
+            ).intents.single().variables.single()
+        )
+    }
+
+    @Test
+    fun `if variable is of type picovoice type Alphanumeric, its a char`() {
+        assertEquals(
+            SlotVariable("bla", SlotVariableType.Char, true),
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do ${'$'}pv.Alphanumeric:bla
+                """.trimIndent(),
+            ).intents.single().variables.single()
+        )
+    }
+
+    @Test
+    fun `if variable is of type picovoice type Percent, its an int`() {
+        assertEquals(
+            SlotVariable("bla", SlotVariableType.Integer, true),
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do ${'$'}pv.Percent:bla
+                """.trimIndent(),
+            ).intents.single().variables.single()
+        )
+    }
+
+    @Test
+    fun `if variable is of type picovoice type SingleDigitInteger, its an int`() {
+        assertEquals(
+            SlotVariable("bla", SlotVariableType.Integer, true),
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do ${'$'}pv.SingleDigitInteger:bla
+                """.trimIndent(),
+            ).intents.single().variables.single()
+        )
+    }
+
+    @Test
+    fun `if variable is of type picovoice type SingleDigitOrdinal, its an int`() {
+        assertEquals(
+            SlotVariable("bla", SlotVariableType.Integer, true),
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do ${'$'}pv.SingleDigitOrdinal:bla
+                """.trimIndent(),
+            ).intents.single().variables.single()
+        )
+    }
+
+    @Test
+    fun `if variable is of type picovoice type TwoDigitInteger, its an int`() {
+        assertEquals(
+            SlotVariable("bla", SlotVariableType.Integer, true),
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do ${'$'}pv.TwoDigitInteger:bla
+                """.trimIndent(),
+            ).intents.single().variables.single()
+        )
+    }
+
+    @Test
+    fun `if variable is of type picovoice type TwoDigitOrdinal, its an int`() {
+        assertEquals(
+            SlotVariable("bla", SlotVariableType.Integer, true),
+            readContext(
+                """
+                    context:
+                      expressions:
+                        Foo:
+                          - do ${'$'}pv.TwoDigitOrdinal:bla
+                """.trimIndent(),
+            ).intents.single().variables.single()
         )
     }
 }

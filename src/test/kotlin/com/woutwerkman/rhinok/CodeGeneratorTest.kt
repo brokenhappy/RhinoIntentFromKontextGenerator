@@ -1,5 +1,6 @@
 package com.woutwerkman.rhinok
 
+import com.woutwerkman.rhinok.SlotVariableType.*
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -13,7 +14,7 @@ class CodeGeneratorTest {
     @Test
     fun `intent with variables becomes an object class`() {
         assertThatDeclarationOf(
-            Intent("Foo", listOf(SlotVariable("bar", Slot("Bar", listOf()), true))),
+            Intent("Foo", listOf(SlotVariable("bar", Custom(Slot("Bar", listOf())), true))),
             generates = "data class Foo(val bar: Bar) : Intent",
         )
     }
@@ -37,8 +38,8 @@ class CodeGeneratorTest {
     @Test
     fun `intent with variables is instantiated`() {
         assertThatInstantiationOf(
-            Intent("Foo", listOf(SlotVariable("bar", Slot("Bar", listOf()), true))),
-            generates = """Foo(slots.getRequiredSlot("bar", ::IllegalInferenceException))"""
+            Intent("Foo", listOf(SlotVariable("bar", Custom(Slot("Bar", listOf())), true))),
+            generates = """Foo(slots.getSlot("bar", error).require("bar", error))"""
         )
     }
 

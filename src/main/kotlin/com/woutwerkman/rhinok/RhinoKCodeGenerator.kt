@@ -1,7 +1,6 @@
 package com.woutwerkman.rhinok
 
 class RhinoKCodeGenerator {
-    class IllegalYamlFile(message: String) : Exception(message)
 
     fun generateFrom(context: RhinoContext): CharSequence = buildString {
         appendLine("""
@@ -23,13 +22,13 @@ class RhinoKCodeGenerator {
            |                If you are sure the set-up is correct, please report the issue 
            |                https://github.com/brokenhappy/RhinoIntentFromKontextGenerator/issues
            |            ""${'"'}.trimIndent())
-           |        
+           |            val error = ::IllegalInferenceException
            |            val slots = inference.slots
            |            return when (inference.intent) {
         """.trimMargin())
         context.intents.joinTo(this, "\n") { "                " + it.generateInstantiationCodeInWhenBranch() }
         appendLine("""
-                           else -> throw IllegalInferenceException("Intent ${'$'}{inference.intent} is not a legal intent kind")
+                           else -> throw error("Intent ${'$'}{inference.intent} is not a legal intent kind")
                        }
                    }
                }
@@ -43,9 +42,14 @@ class RhinoKCodeGenerator {
                         ?: throw exception("Slot ${'$'}{T::class.simpleName} does not have element ${'$'}it given for variable ${'$'}key")
                 }
             
-            private inline fun <reified T: Enum<T>> Map<String, String>.getRequiredSlot(key: String, exception: (String) -> Throwable): T =
-                getSlot<T>(key, exception) ?: throw exception("Variable ${'$'}key is required by all expressions, but is not present")
+                private fun Map<String, String>.getInt(key: String,  exception: (String) -> Throwable) =
+                    this[key]?.let { it.toIntOrNull() ?: throw exception("Variable ${'$'}key must be an integer string but was '${'$'}it'") }
+                
+                private fun Map<String, String>.getChar(key: String,  exception: (String) -> Throwable) =
+                    this[key]?.let { it.singleOrNull() ?: throw exception("Variable ${'$'}key must be an single char string but was '${'$'}it'") }
+                
+                private fun <T> T?.require(key: String, exception: (String) -> Throwable) =
+                    this ?: throw exception("Variable ${'$'}key is required by all expressions, but is not present")
         """.trimIndent())
     }
 }
-
