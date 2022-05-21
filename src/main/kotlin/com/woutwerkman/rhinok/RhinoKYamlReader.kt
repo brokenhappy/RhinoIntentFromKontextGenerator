@@ -49,11 +49,6 @@ class RhinoKYamlReader {
     }
 }
 
-data class Slot(val name: String, val elements: List<String>)
-data class SlotVariable(val name: String, val slotType: Slot, val isRequired: Boolean)
-data class Intent(val name: String, val variables: List<SlotVariable>)
-data class RhinoContext(val intents: List<Intent>, val slots: List<Slot>)
-
 @JvmInline
 private value class YamlNode(val yaml: Map<String, *>) {
     fun nextMap(key: String, messageProvider: () -> String): YamlNode =
