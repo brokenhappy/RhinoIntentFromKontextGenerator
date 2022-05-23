@@ -39,7 +39,7 @@ class CodeGeneratorTest {
     fun `intent with variables is instantiated`() {
         assertThatInstantiationOf(
             Intent("Foo", listOf(SlotVariable("bar", Custom(Slot("Bar", listOf())), true))),
-            generates = """Foo(slots.getSlot("bar", error).require("bar", error))"""
+            generates = """Foo(slots.getSlot<Bar>("bar", error).require("bar", error))"""
         )
     }
 

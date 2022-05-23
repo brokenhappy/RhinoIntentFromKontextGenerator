@@ -2,15 +2,16 @@ package com.woutwerkman.rhinok
 
 class RhinoKCodeGenerator {
 
-    fun generateFrom(context: RhinoContext): CharSequence = buildString {
+    fun generateFrom(context: RhinoContext, withPackage: String?): String = buildString {
+        appendLine("// This is a generated class, changes WILL be overridden")
+        withPackage.also { appendLine("package $it\n") }
         appendLine("""
-            // This is a generated class
             import ai.picovoice.rhino.RhinoInference
             
             sealed interface Intent {
                 object NotUnderstood : Intent
         """.trimIndent())
-        context.intents.joinTo(this, "\n") { "    " + it.generateTypeDeclarationCode() }
+        context.intents.forEach { intent -> appendLine("    " + intent.generateTypeDeclarationCode()) }
         appendLine("""
            |    companion object {
            |        fun from(inference: RhinoInference): Intent {
@@ -26,30 +27,32 @@ class RhinoKCodeGenerator {
            |            val slots = inference.slots
            |            return when (inference.intent) {
         """.trimMargin())
-        context.intents.joinTo(this, "\n") { "                " + it.generateInstantiationCodeInWhenBranch() }
+        context.intents.forEach { appendLine("                " + it.generateInstantiationCodeInWhenBranch()) }
         appendLine("""
                            else -> throw error("Intent ${'$'}{inference.intent} is not a legal intent kind")
                        }
                    }
                }
            }
-        """.trimMargin())
-        context.slots.joinTo(this, "\n") { slot -> slot.generateSlotEnum() }
+           
+        """.trimIndent())
+        context.slots.forEach { slot -> appendLine(slot.generateSlotEnum()) }
         appendLine("""
+            
             private inline fun <reified T: Enum<T>> Map<String, String>.getSlot(key: String, exception: (String) -> Throwable): T? =
                 this[key]?.let {
                     kotlin.runCatching { java.lang.Enum.valueOf(T::class.java, it) }.getOrNull()
-                        ?: throw exception("Slot ${'$'}{T::class.simpleName} does not have element ${'$'}it given for variable ${'$'}key")
+                        ?: throw exception("Slot ${'$'}{T::class.simpleName} does not have element '${'$'}it' given for variable '${'$'}key'")
                 }
             
-                private fun Map<String, String>.getInt(key: String,  exception: (String) -> Throwable) =
-                    this[key]?.let { it.toIntOrNull() ?: throw exception("Variable ${'$'}key must be an integer string but was '${'$'}it'") }
-                
-                private fun Map<String, String>.getChar(key: String,  exception: (String) -> Throwable) =
-                    this[key]?.let { it.singleOrNull() ?: throw exception("Variable ${'$'}key must be an single char string but was '${'$'}it'") }
-                
-                private fun <T> T?.require(key: String, exception: (String) -> Throwable) =
-                    this ?: throw exception("Variable ${'$'}key is required by all expressions, but is not present")
+            private fun Map<String, String>.getInt(key: String,  exception: (String) -> Throwable) =
+                this[key]?.let { it.toIntOrNull() ?: throw exception("Variable '${'$'}key' must be an integer string but was '${'$'}it'") }
+            
+            private fun Map<String, String>.getChar(key: String,  exception: (String) -> Throwable) =
+                this[key]?.let { it.singleOrNull() ?: throw exception("Variable '${'$'}key' must be an single char string but was '${'$'}it'") }
+            
+            private inline fun <T> T?.require(key: String, exception: (String) -> Throwable) =
+                this ?: throw exception("Variable '${'$'}key' is required by all expressions, but is not present")
         """.trimIndent())
     }
 }

@@ -1,7 +1,7 @@
 package com.woutwerkman.rhinok
 
 data class Slot(val name: String, val elements: List<String>) {
-    internal fun generateSlotEnum(): String = elements.joinToString(prefix = "enum class $name {", postfix = "}")
+    internal fun generateSlotEnum(): String = elements.joinToString(prefix = "enum class $name { ", postfix = " }")
 }
 
 
@@ -19,7 +19,7 @@ sealed interface SlotVariableType {
     val functionCall: String
     data class Custom(val slot: Slot) : SlotVariableType {
         override val dataType: String get() = slot.name
-        override val functionCall: String get() = "getSlot"
+        override val functionCall: String get() = "getSlot<$dataType>"
     }
     object Integer : SlotVariableType {
         override val dataType: String get() = "Int"
